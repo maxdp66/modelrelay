@@ -146,6 +146,8 @@ modelrelay status --autostart
 modelrelay update
 modelrelay autoupdate [--enable|--disable|--status] [--interval <hours>]
 modelrelay autostart [--install|--start|--uninstall|--status]
+modelrelay config export
+modelrelay config import <token>
 ```
 
 Request terminal logging is disabled by default. Use `--log` to enable it.
@@ -159,6 +161,13 @@ During `modelrelay onboard`, you will also be prompted to enable auto-start on l
 Auto-update is enabled by default. While the router is running, modelrelay checks npm periodically (default: every 24 hours) and applies updates automatically.
 
 Use `modelrelay autoupdate --status` to inspect state, `modelrelay autoupdate --disable` to turn it off, and `modelrelay autoupdate --enable --interval 12` to re-enable with a custom interval.
+
+Use `modelrelay config export` to print a transferable config token (base64url-encoded JSON), and `modelrelay config import <token>` to load it on another machine.
+You can also import by stdin:
+
+```bash
+modelrelay config export | modelrelay config import
+```
 
 ## Config
 
@@ -178,6 +187,13 @@ Use `modelrelay autoupdate --status` to inspect state, `modelrelay autoupdate --
 For `Qwen Code`, modelrelay supports both API keys and Qwen OAuth cached credentials (`~/.qwen/oauth_creds.json`).
 If OAuth credentials exist, modelrelay will use them and refresh access tokens automatically.
 You can also start OAuth directly from the Web UI Providers tab using `Login with Qwen Code`.
+
+### Config migration (CLI + Web UI)
+
+- In the Web UI, open `Settings` -> `Configuration Transfer` to export/copy/import a token.
+- The token includes your full config (including API keys, provider toggles, bans, filter rules, and auto-update settings).
+- Treat tokens as secrets. Anyone with the token can import your keys/settings.
+- Alternative: copy the config file directly from `~/.modelrelay.json` to the other machine at the same path (`~/.modelrelay.json`).
 
 ## Troubleshooting
 

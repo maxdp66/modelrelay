@@ -20,7 +20,7 @@ import {
 } from '../lib/utils.js'
 import { buildOpenClawProviderConfig } from '../lib/onboard.js'
 import { resolveAutostartExecPath, resolveAutostartNodePath } from '../lib/autostart.js'
-import { getApiKey, getProviderPingIntervalMs } from '../lib/config.js'
+import { exportConfigToken, getApiKey, getProviderPingIntervalMs, importConfigToken } from '../lib/config.js'
 import { buildNpmInstallInvocation, buildWindowsPostUpdateRestartCommand, getForcedUpdateVersion, getLocalUpdateTarballPath, getLocalUpdateVersion, isRunningFromSource, shouldStopAutostartBeforeUpdate } from '../lib/update.js'
 import { isQwenOauthAccessTokenValid, pollQwenOauthDeviceToken, resolveQwenCodeOauthAccessToken, startQwenOauthDeviceLogin } from '../lib/qwencodeAuth.js'
 import { toOpenRouterModelMeta, toKiloCodeModelMeta } from '../lib/server.js'
@@ -75,6 +75,36 @@ describe('config helpers', () => {
     assert.equal(getProviderPingIntervalMs(config, 'qwencode'), 10 * 60_000)
     assert.equal(getProviderPingIntervalMs(config, 'openrouter'), 30 * 60_000) // default
     assert.equal(getProviderPingIntervalMs(config, 'missing'), 30 * 60_000) // default
+  })
+
+  it('exports/imports full config through transfer token', () => {
+    const config = {
+      apiKeys: { nvidia: '  nv-key  ', groq: 'gsk-key' },
+      providers: { nvidia: { enabled: true }, groq: { enabled: false } },
+      bannedModels: ['a', 'b'],
+      autoUpdate: { enabled: true, intervalHours: 12 },
+      minSweScore: 0.45,
+      excludedProviders: ['openrouter'],
+    }
+
+    const token = exportConfigToken(config)
+    assert.equal(token.startsWith('mrconf:v1:'), true)
+
+    const imported = importConfigToken(token)
+    assert.equal(imported.apiKeys.nvidia, 'nv-key')
+    assert.equal(imported.apiKeys.groq, 'gsk-key')
+    assert.equal(imported.providers.groq.enabled, false)
+    assert.deepEqual(imported.bannedModels, ['a', 'b'])
+    assert.equal(imported.autoUpdate.intervalHours, 12)
+    assert.equal(imported.minSweScore, 0.45)
+    assert.deepEqual(imported.excludedProviders, ['openrouter'])
+  })
+
+  it('imports legacy plain-base64 config payloads', () => {
+    const json = JSON.stringify({ apiKeys: { qwencode: 'abc' }, providers: {} })
+    const plainBase64 = Buffer.from(json, 'utf8').toString('base64')
+    const imported = importConfigToken(plainBase64)
+    assert.equal(imported.apiKeys.qwencode, 'abc')
   })
 })
 
@@ -562,6 +592,18 @@ describe('parseArgs', () => {
     const disabled = parseArgs(argv('autoupdate', '--disable'))
     assert.equal(disabled.autoUpdateAction, 'disable')
     assert.equal(disabled.autoUpdateIntervalHours, null)
+  })
+
+  it('parses config export/import commands', () => {
+    const exported = parseArgs(argv('config', 'export'))
+    assert.equal(exported.command, 'config')
+    assert.equal(exported.configAction, 'export')
+    assert.equal(exported.configPayload, null)
+
+    const imported = parseArgs(argv('config', 'import', 'mrconf:v1:abc123'))
+    assert.equal(imported.command, 'config')
+    assert.equal(imported.configAction, 'import')
+    assert.equal(imported.configPayload, 'mrconf:v1:abc123')
   })
 })
 

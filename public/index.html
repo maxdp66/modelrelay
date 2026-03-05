@@ -1430,6 +1430,19 @@
       <div id="providers-container" class="autoupdate-panel">
         <!-- Settings generated here -->
       </div>
+      <h3 style="margin: 2rem 0 0.25rem; font-size: 1rem;">Configuration Transfer</h3>
+      <p style="color: var(--text-muted); margin: 0 0 1.25rem; font-size: 0.84rem;">Export/import all settings (including API keys) as a single encoded token for copy/paste migration.</p>
+      <div id="config-transfer-container">
+        <div class="autoupdate-panel">
+          <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
+            <button class="btn" style="padding:8px 14px;" onclick="exportConfigTokenToBox()">Export</button>
+            <button class="btn" style="padding:8px 14px;" onclick="copyConfigTokenFromBox()">Copy</button>
+            <button class="btn" style="padding:8px 14px; background:#ecfdf5; border-color:#a7f3d0; color:#065f46;" onclick="importConfigTokenFromBox()">Import</button>
+          </div>
+          <textarea id="config-transfer-payload" spellcheck="false" placeholder="Paste exported config token here..." style="width:100%; min-height:95px; box-sizing:border-box; border:1px solid var(--border); border-radius:10px; padding:10px 12px; font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:0.78rem; line-height:1.4; resize:vertical; background:#fff;"></textarea>
+          <div id="config-transfer-status" class="autoupdate-save-status" style="margin-top:8px;"></div>
+        </div>
+      </div>
     </div>
 
     <div id="logs-view" style="display: none;">
@@ -2654,6 +2667,74 @@
       } catch (err) {
         document.getElementById('filter-rules-save-status').textContent = err.message || 'Failed to save.';
         document.getElementById('filter-rules-save-status').style.color = 'var(--error)';
+      }
+    }
+
+    function setConfigTransferStatus(message, tone = '') {
+      const statusEl = document.getElementById('config-transfer-status');
+      if (!statusEl) return;
+      statusEl.textContent = message || '';
+      statusEl.className = `autoupdate-save-status${tone === 'success' ? ' success' : tone === 'error' ? ' error' : ''}`;
+    }
+
+    async function exportConfigTokenToBox() {
+      try {
+        const res = await fetch('/api/config/export');
+        const payload = await res.json();
+        if (!res.ok || !payload?.payload) {
+          throw new Error(payload?.error || 'Failed to export settings.');
+        }
+        const box = document.getElementById('config-transfer-payload');
+        if (box) box.value = payload.payload;
+        setConfigTransferStatus('Config token exported.', 'success');
+      } catch (err) {
+        setConfigTransferStatus(err.message || 'Failed to export settings.', 'error');
+      }
+    }
+
+    async function copyConfigTokenFromBox() {
+      const box = document.getElementById('config-transfer-payload');
+      const value = (box?.value || '').trim();
+      if (!value) {
+        setConfigTransferStatus('Nothing to copy. Export first or paste a token.', 'error');
+        return;
+      }
+
+      try {
+        await navigator.clipboard.writeText(value);
+        setConfigTransferStatus('Copied token to clipboard.', 'success');
+      } catch {
+        setConfigTransferStatus('Clipboard copy failed. Please copy manually.', 'error');
+      }
+    }
+
+    async function importConfigTokenFromBox() {
+      const box = document.getElementById('config-transfer-payload');
+      const payload = (box?.value || '').trim();
+      if (!payload) {
+        setConfigTransferStatus('Paste a config token before importing.', 'error');
+        return;
+      }
+
+      if (!confirm('Importing will overwrite your current settings (including API keys). Continue?')) {
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/config/import', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ payload })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.success) {
+          throw new Error(data.error || 'Failed to import settings.');
+        }
+        setConfigTransferStatus('Config imported successfully.', 'success');
+        await loadSettings();
+        await fetchData();
+      } catch (err) {
+        setConfigTransferStatus(err.message || 'Failed to import settings.', 'error');
       }
     }
 
