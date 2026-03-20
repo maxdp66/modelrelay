@@ -328,6 +328,7 @@ describe('dynamic model score resolution', () => {
     })
 
     assert.ok(model)
+    assert.equal(model.label, 'MiniMax M2.5')
     assert.equal(model.intell, 0.802)
     assert.equal(model.isEstimatedScore, false)
   })
@@ -341,6 +342,8 @@ describe('dynamic model score resolution', () => {
     assert.equal(getPreferredModelLabel('xiaomi/mimo-v2-omni:free'), 'MiMo V2 Omni')
     assert.equal(getPreferredModelLabel('xiaomi/mimo-v2-pro:free'), 'MiMo V2 Omni Pro')
     assert.equal(getPreferredModelLabel('x-ai/grok-code-fast-1:optimized:free'), 'Grok Code Fast')
+    assert.equal(getPreferredModelLabel('minimax-m2.5-free', 'MiniMax M2.5 Free'), 'MiniMax M2.5')
+    assert.equal(getPreferredModelLabel('nemotron-3-super-free', 'Nemotron 3 Super Free'), 'Nemotron 3 Super')
   })
 })
 

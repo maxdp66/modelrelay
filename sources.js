@@ -22,6 +22,16 @@ export function resolveAliasedModelId(modelId) {
   return MODEL_ID_ALIASES[raw] || raw
 }
 
+export function cleanModelDisplayLabel(label) {
+  if (typeof label !== 'string') return ''
+  return label
+    .trim()
+    .replace(/\s+/g, ' ')
+    .replace(/\s+\(free\)\s*$/i, '')
+    .replace(/\s+free\s*$/i, '')
+    .trim()
+}
+
 export function canonicalizeModelId(modelId) {
   const resolved = resolveAliasedModelId(modelId)
   // 1. Remove provider/runtime suffixes like :free or :optimized:free
@@ -33,7 +43,10 @@ export function canonicalizeModelId(modelId) {
 
 export function getPreferredModelLabel(modelId, fallback = null) {
   const resolved = resolveAliasedModelId(modelId)
-  return MODEL_LABEL_OVERRIDES[modelId] || MODEL_LABEL_OVERRIDES[resolved] || fallback
+  const override = MODEL_LABEL_OVERRIDES[modelId] || MODEL_LABEL_OVERRIDES[resolved]
+  if (override) return override
+  const cleanedFallback = cleanModelDisplayLabel(fallback)
+  return cleanedFallback || fallback
 }
 
 export function getScore(modelId) {
