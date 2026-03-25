@@ -1645,7 +1645,9 @@
             <button id="logs-mode-history" class="logs-mode-btn active" onclick="setLogsViewMode('history')" role="tab"
               aria-selected="true">Message History</button>
           </div>
-          <button onclick="loadLogs()" class="btn"
+          <button id="logs-pause-toggle" onclick="toggleLogsAutoRefresh()" class="btn"
+            style="background: white; color: var(--text); border: 1px solid var(--border);">Pause Live Updates</button>
+          <button onclick="loadLogs(true)" class="btn"
             style="background: white; color: var(--text); border: 1px solid var(--border);">Refresh Logs</button>
         </div>
       </div>
@@ -1797,6 +1799,7 @@
     let isTableHovered = false;
     let metaLoaded = false;
     let logsViewMode = 'history';
+    let logsAutoRefreshPaused = false;
     const PROVIDER_ERROR_MAX_AGE_MS = 120 * 60_000;
     let qwenOauthSessionId = null;
     let qwenOauthPollTimer = null;
@@ -1822,7 +1825,7 @@
       if (tab === 'settings') {
         loadSettings();
       } else if (tab === 'logs') {
-        loadLogs();
+        loadLogs(true);
       } else if (tab === 'chat') {
         renderChatTranscript();
         scrollChatToBottom();
@@ -3575,7 +3578,23 @@
       setChatStatus('');
     }
 
-    async function loadLogs() {
+    function updateLogsPauseButton() {
+      const pauseBtn = document.getElementById('logs-pause-toggle');
+      if (!pauseBtn) return;
+      pauseBtn.textContent = logsAutoRefreshPaused ? 'Resume Live Updates' : 'Pause Live Updates';
+      pauseBtn.setAttribute('aria-pressed', logsAutoRefreshPaused ? 'true' : 'false');
+    }
+
+    function toggleLogsAutoRefresh() {
+      logsAutoRefreshPaused = !logsAutoRefreshPaused;
+      updateLogsPauseButton();
+      if (!logsAutoRefreshPaused) {
+        loadLogs(true);
+      }
+    }
+
+    async function loadLogs(force = false) {
+      if (!force && logsAutoRefreshPaused) return;
       try {
         const res = await fetch('/api/logs');
         const logs = await res.json();
@@ -3765,7 +3784,7 @@
         cardsBtn.setAttribute('aria-selected', logsViewMode === 'cards' ? 'true' : 'false');
         historyBtn.setAttribute('aria-selected', logsViewMode === 'history' ? 'true' : 'false');
       }
-      loadLogs();
+      loadLogs(true);
     }
 
     function escapeHtml(value) {
@@ -4083,7 +4102,7 @@
 
         // Immediately refresh telemetry data and logs
         await fetchData();
-        if (typeof loadLogs === 'function') loadLogs();
+        if (typeof loadLogs === 'function') loadLogs(true);
 
         // Re-render drawer if it is currently open for this model
         if (openDrawerModelId === modelId) {
@@ -4096,6 +4115,7 @@
     }
 
     initializeChat();
+    updateLogsPauseButton();
     setInterval(fetchData, 4000);
     fetchData();
   </script>
