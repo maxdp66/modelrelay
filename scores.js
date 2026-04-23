@@ -44,6 +44,7 @@ export const scores = {
   "gpt-oss-120b": 0.6,
   "ibm/granite-34b-code-instruct": 0.3,
   "igenius/colosseum_355b_instruct_16k": 0.52,
+  "inclusionai/ling-2.6-flash": 0.232,
   "liquid/lfm-2.5-1.2b-instruct": 0.008,
   "liquid/lfm-2.5-1.2b-thinking": 0.02,
   "llama-3.1-8b-instant": 0.14,
